@@ -1,3 +1,5 @@
+SHELL := /bin/bash
+
 .PHONY: setup run test clean help db-up db-down db-logs db-shell
 
 help:
@@ -15,36 +17,42 @@ help:
 setup:
 	@echo "Setting up the project..."
 	@echo "Starting PostgreSQL database..."
-	@docker-compose up -d
+	@docker compose up postgres -d
 	@echo "Waiting for database to be ready..."
-	@sleep 5
+	@while ! docker exec messaging-service-db pg_isready -U messaging_user -d messaging_service >/dev/null 2>&1; \
+	do \
+		if ! docker ps | grep messaging-service-db >/dev/null 2>&1; then \
+			echo "Database container is not running. Please check the Docker setup."; \
+			exit 1; \
+		fi; \
+		echo "Waiting for database..."; \
+		sleep 2; \
+	done
 	@echo "Setup complete!"
 
-run:
+run: setup
 	@echo "Running the application..."
 	@./bin/start.sh
 
-test:
+test: run
 	@echo "Running tests..."
-	@echo "Starting test database if not running..."
-	@docker-compose up -d
 	@echo "Running test script..."
 	@./bin/test.sh
 
 clean:
 	@echo "Cleaning up..."
 	@echo "Stopping and removing containers..."
-	@docker-compose down -v
+	@docker compose down -v
 	@echo "Removing any temporary files..."
 	@rm -rf *.log *.tmp
 
 db-up:
 	@echo "Starting PostgreSQL database..."
-	@docker-compose up -d
+	@docker compose up postgres -d
 
 db-down:
 	@echo "Stopping PostgreSQL database..."
-	@docker-compose down
+	@docker-compose down postgres
 
 db-logs:
 	@echo "Showing database logs..."
