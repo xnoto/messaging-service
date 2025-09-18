@@ -32,7 +32,7 @@ spec:
               value: "5432"
             - name: POSTGRES_USER
               value: messaging_user
-          image: app
+          image: ghcr.io/xnoto/messaging-service-app:slim
           livenessProbe:
             exec:
               command:
