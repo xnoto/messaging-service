@@ -17,7 +17,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: ./app
-          push: true
+          push: false
           tags: ghcr.io/xnoto/messaging-service-app:latest
 
       - name: Slim it!
