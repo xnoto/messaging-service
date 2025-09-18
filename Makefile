@@ -1,4 +1,6 @@
-SHELL := /bin/bash
+SHELL          := /bin/bash
+DOCKER         := $(shell which docker)
+DOCKER_COMPOSE := $(shell which docker-compose 2>/dev/null || echo `which docker` compose)
 
 .PHONY: setup run test clean help db-up db-down db-logs db-shell
 
@@ -8,6 +10,7 @@ help:
 	@echo "  run      - Run the application"
 	@echo "  test     - Run tests"
 	@echo "  clean    - Clean up temporary files and stop containers"
+	@echo "  deploy   - Deploy the application helm chart"
 	@echo "  db-up    - Start the PostgreSQL database"
 	@echo "  db-down  - Stop the PostgreSQL database"
 	@echo "  db-logs  - Show database logs"
@@ -17,15 +20,14 @@ help:
 setup:
 	@echo "Setting up the project..."
 	@echo "Starting PostgreSQL database..."
-	@docker compose up postgres -d
-	@echo "Waiting for database to be ready..."
-	@while ! docker exec messaging-service-db pg_isready -U messaging_user -d messaging_service >/dev/null 2>&1; \
+	@${DOCKER_COMPOSE} up postgres -d
+	@while ! ${DOCKER} exec messaging-service-db pg_isready -U messaging_user -d messaging_service >/dev/null 2>&1; \
 	do \
-		if ! docker ps | grep messaging-service-db >/dev/null 2>&1; then \
-			echo "Database container is not running. Please check the Docker setup."; \
+		if ! ${DOCKER} ps | grep messaging-service-db >/dev/null 2>&1; then \
+			echo "Database container is not running. Check the container logs."; \
 			exit 1; \
 		fi; \
-		echo "Waiting for database..."; \
+		echo "Waiting for database to be ready..."; \
 		sleep 2; \
 	done
 	@echo "Setup complete!"
@@ -42,22 +44,26 @@ test: run
 clean:
 	@echo "Cleaning up..."
 	@echo "Stopping and removing containers..."
-	@docker compose down -v
+	@${DOCKER_COMPOSE} down -v
 	@echo "Removing any temporary files..."
 	@rm -rf *.log *.tmp
 
+deploy:
+	@echo "Deploying the application helm chart..."
+	@helm upgrade --install messaging-service-app ./helm/ --namespace messaging-service --create-namespace
+
 db-up:
 	@echo "Starting PostgreSQL database..."
-	@docker compose up postgres -d
+	@${DOCKER_COMPOSE} up postgres -d
 
 db-down:
 	@echo "Stopping PostgreSQL database..."
-	@docker-compose down postgres
+	@${DOCKER_COMPOSE} down postgres
 
 db-logs:
 	@echo "Showing database logs..."
-	@docker-compose logs -f postgres
+	@${DOCKER_COMPOSE} logs -f postgres
 
 db-shell:
 	@echo "Connecting to database shell..."
-	@docker-compose exec postgres psql -U messaging_user -d messaging_service
+	@${DOCKER_COMPOSE} exec postgres psql -U messaging_user -d messaging_service

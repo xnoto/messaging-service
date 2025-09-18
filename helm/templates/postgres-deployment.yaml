@@ -1,0 +1,52 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -c
+    kompose.version: 1.37.0 (fb0539e64)
+  labels:
+    io.kompose.service: postgres
+  name: postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -c
+        kompose.version: 1.37.0 (fb0539e64)
+      labels:
+        io.kompose.service: postgres
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: messaging_service
+            - name: POSTGRES_PASSWORD
+              value: messaging_password
+            - name: POSTGRES_USER
+              value: messaging_user
+          image: postgres:15-alpine
+          livenessProbe:
+            exec:
+              command:
+                - pg_isready -U messaging_user -d messaging_service
+            failureThreshold: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          name: messaging-service-db
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: postgres-data
+      restartPolicy: Always
+      volumes:
+        - name: postgres-data
+          persistentVolumeClaim:
+            claimName: postgres-data
