@@ -9,7 +9,7 @@ echo "Environment: ${ENV:-development}"
 docker compose up -d \
   && while [[ "$(docker inspect --format="{{json .State.Health.Status}}" messaging-service-app | jq)" != *"healthy"* ]]; \
     do \
-      echo "Waiting for application to be healthy..."; \
+      echo "Waiting for application to be ready..."; \
       sleep 2; \
     done \
-  && echo "Application started successfully!" 
+  && echo "Application started successfully!"

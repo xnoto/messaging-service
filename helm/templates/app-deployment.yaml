@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -c
+    kompose.version: 1.37.0 (fb0539e64)
+  labels:
+    io.kompose.service: app
+  name: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: app
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -c
+        kompose.version: 1.37.0 (fb0539e64)
+      labels:
+        io.kompose.service: app
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: messaging_service
+            - name: POSTGRES_HOST
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: messaging_password
+            - name: POSTGRES_PORT
+              value: "5432"
+            - name: POSTGRES_USER
+              value: messaging_user
+          image: app
+          livenessProbe:
+            exec:
+              command:
+                - curl localhost:8080
+            failureThreshold: 5
+            periodSeconds: 10
+            timeoutSeconds: 5
+          name: messaging-service-app
+          ports:
+            - containerPort: 8080
+              protocol: TCP
+      restartPolicy: Always

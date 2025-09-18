@@ -107,4 +107,4 @@ curl -X GET "$BASE_URL/api/conversations/1/messages" \
   -H "$CONTENT_TYPE" \
   -w "\nStatus: %{http_code}\n\n"
 
-echo "=== Test script completed ===" 
+echo "=== Test script completed ==="

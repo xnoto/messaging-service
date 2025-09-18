@@ -1,0 +1,6 @@
+name: messaging-service-app
+description: Simple Messaging Service API using Flask and SQLAlchemy
+version: 0.0.1
+apiVersion: v2
+keywords:
+  - messaging-service-app
