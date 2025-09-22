@@ -52,7 +52,7 @@
         mode: "0644"
 
     - name: Bring up the compose project
-      community.docker.docker_compose:
+      community.docker.docker_compose_v2:
         project_src: "{{ app_dir }}"
         state: present
         pull: true
