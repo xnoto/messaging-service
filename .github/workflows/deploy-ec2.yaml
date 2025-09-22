@@ -1,0 +1,84 @@
+name: Deploy Docker Compose to EC2 via Ansible
+
+on:
+  push:
+    branches: [ "main" ]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      AWS_REGION: us-west-2
+      INSTANCE_NAME: compose-ec2
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Install Ansible and deps
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install ansible boto3 botocore
+          ansible-galaxy collection install -r ansible/requirements.yml
+
+      - name: Provision or update EC2 (Ansible AWS modules)
+        env:
+          ANSIBLE_CONFIG: ansible/ansible.cfg
+        run: |
+          ansible-playbook ansible/provision.yml -e aws_region=${AWS_REGION} -e instance_name=${INSTANCE_NAME}
+
+      - name: Get EC2 details
+        id: ec2
+        shell: bash
+        run: |
+          set -euo pipefail
+          read INST AZ DNS <<<"$(aws ec2 describe-instances \
+            --filters "Name=tag:Name,Values=${INSTANCE_NAME}" "Name=instance-state-name,Values=pending,running,stopping,stopped" \
+            --query "Reservations[0].Instances[0].[InstanceId,Placement.AvailabilityZone,PublicDnsName]" --output text)"
+          echo "instance_id=$INST" >> "$GITHUB_OUTPUT"
+          echo "az=$AZ" >> "$GITHUB_OUTPUT"
+          echo "dns=$DNS" >> "$GITHUB_OUTPUT"
+
+      - name: Generate ephemeral SSH key (for EC2 Instance Connect)
+        run: |
+          ssh-keygen -t ed25519 -f ./gha_eic -N "" -C "gha-ansible-$(date +%s)"
+          echo "SSH key generated."
+
+      - name: Authorize SSH via EC2 Instance Connect
+        run: |
+          aws ec2-instance-connect send-ssh-public-key \
+            --instance-id "${{ steps.ec2.outputs.instance_id }}" \
+            --availability-zone "${{ steps.ec2.outputs.az }}" \
+            --instance-os-user ec2-user \
+            --ssh-public-key "file://./gha_eic.pub"
+
+      - name: Write Ansible inventory for this host
+        run: |
+          mkdir -p ansible
+          cat > ansible/inventory.ini <<EOF
+[targets]
+${{ steps.ec2.outputs.dns }} ansible_user=ec2-user ansible_ssh_private_key_file=./gha_eic
+EOF
+
+      - name: Configure host and deploy docker-compose
+        env:
+          ANSIBLE_CONFIG: ansible/ansible.cfg
+        run: |
+          # Note: EC2 Instance Connect authorization lasts ~60s; Ansible will keep
+          # an open control connection (ControlPersist) per ansible.cfg.
+          ansible-playbook -i ansible/inventory.ini ansible/configure.yml -e pubkey_path=./gha_eic.pub
+
+      - name: Summary
+        run: |
+          echo "Deployed to: http://${{ steps.ec2.outputs.dns }}/"

@@ -1,0 +1,59 @@
+---
+- name: Configure EC2 host and deploy docker-compose
+  hosts: all
+  become: true
+  gather_facts: false
+  vars:
+    app_dir: /opt/app
+  pre_tasks:
+    - name: Ensure python3 exists (for Ansible modules)
+      ansible.builtin.raw: |
+        test -x /usr/bin/python3 || (sudo dnf -y update && sudo dnf -y install python3)
+      changed_when: false
+
+    - name: Add current ephemeral public key for future SSH reconnects
+      ansible.builtin.authorized_key:
+        user: ec2-user
+        state: present
+        key: "{{ lookup('file', pubkey_path) }}"
+        manage_dir: true
+
+  tasks:
+    - name: Install Docker and pip
+      ansible.builtin.package:
+        name:
+          - docker
+          - python3-pip
+        state: present
+
+    - name: Enable and start Docker
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Install Python Docker and docker-compose libraries
+      ansible.builtin.pip:
+        name:
+          - docker
+          - docker-compose
+        executable: pip3
+
+    - name: Ensure app directory exists
+      ansible.builtin.file:
+        path: "{{ app_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Upload docker-compose.yaml from repo
+      ansible.builtin.copy:
+        src: ../docker-compose.yaml
+        dest: "{{ app_dir }}/docker-compose.yaml"
+        mode: "0644"
+
+    - name: Bring up the compose project
+      community.docker.docker_compose:
+        project_src: "{{ app_dir }}"
+        state: present
+        pull: true
+        remove_orphans: true
