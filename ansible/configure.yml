@@ -26,6 +26,11 @@
           - python3-pip
         state: present
 
+    - name: Remove python3-requests
+      ansible.builtin.package:
+        name: python3-requests
+        state: absent
+
     - name: Enable and start Docker
       ansible.builtin.service:
         name: docker
