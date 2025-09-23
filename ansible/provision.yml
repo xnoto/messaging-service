@@ -60,7 +60,7 @@
         owners:
           - "125523088429"  # Fedora Project
         filters:
-          name: "Fedora-Cloud-Base-*-x86_64-*-HVM-*"
+          name: "Fedora-Cloud-Base-*-x86_64-*"
           architecture: "x86_64"
           virtualization-type: "hvm"
           root-device-type: "ebs"
