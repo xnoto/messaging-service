@@ -56,6 +56,12 @@
         state: directory
         mode: "0755"
 
+    - name: Upload .env from repo
+      ansible.builtin.copy:
+        src: ../.env
+        dest: "{{ app_dir }}/.env"
+        mode: "0644"
+
     - name: Upload docker-compose.yml from repo
       ansible.builtin.copy:
         src: ../docker-compose.yml
