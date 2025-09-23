@@ -52,7 +52,7 @@
 
     - name: Upload docker-compose.yaml from repo
       ansible.builtin.copy:
-        src: ../docker-compose.yaml
+        src: /home/runner/work/messaging-service/messaging-service/docker-compose.yaml
         dest: "{{ app_dir }}/docker-compose.yaml"
         mode: "0644"
 
