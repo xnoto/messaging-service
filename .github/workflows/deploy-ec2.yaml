@@ -84,4 +84,4 @@ jobs:
 
       - name: Summary
         run: |
-          echo "Deployed to: http://${{ steps.ec2.outputs.dns }}/"
+          echo "Deployed to: http://${{ steps.ec2.outputs.dns }}:8080"
