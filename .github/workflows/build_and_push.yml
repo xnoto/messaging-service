@@ -22,14 +22,6 @@ jobs:
           push: false
           tags: ghcr.io/xnoto/messaging-service-app:latest
 
-      - name: Slim it!
-        uses: kitabisa/docker-slim-action@v1
-        env:
-          DSLIM_HTTP_PROBE: false
-        with:
-          target: ghcr.io/xnoto/messaging-service-app:latest
-          tag: "slim"
-
       - name: Push to registry
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin

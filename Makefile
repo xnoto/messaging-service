@@ -2,20 +2,21 @@ SHELL          := /bin/bash
 DOCKER         := $(shell which docker)
 DOCKER_COMPOSE := $(shell which docker-compose 2>/dev/null || echo `which docker` compose)
 
-.PHONY: setup run test clean help db-up db-down db-logs db-shell
+.PHONY: setup run test test-remote clean help db-up db-down db-logs db-shell
 
 help:
 	@echo "Available commands:"
-	@echo "  setup    - Set up the project environment and start database"
-	@echo "  run      - Run the application"
-	@echo "  test     - Run tests"
-	@echo "  clean    - Clean up temporary files and stop containers"
-	@echo "  deploy   - Deploy the application helm chart"
-	@echo "  db-up    - Start the PostgreSQL database"
-	@echo "  db-down  - Stop the PostgreSQL database"
-	@echo "  db-logs  - Show database logs"
-	@echo "  db-shell - Connect to the database shell"
-	@echo "  help     - Show this help message"
+	@echo "  setup       - Set up the project environment and start database"
+	@echo "  run         - Run the application"
+	@echo "  test        - Run tests"
+	@echo "  test-remote - Run tests in a remote environment"
+	@echo "  clean       - Clean up temporary files and stop containers"
+	@echo "  deploy      - Deploy the application helm chart"
+	@echo "  db-up       - Start the PostgreSQL database"
+	@echo "  db-down     - Stop the PostgreSQL database"
+	@echo "  db-logs     - Show database logs"
+	@echo "  db-shell    - Connect to the database shell"
+	@echo "  help        - Show this help message"
 
 setup:
 	@echo "Setting up the project..."
@@ -40,6 +41,11 @@ test: run
 	@echo "Running tests..."
 	@echo "Running test script..."
 	@./bin/test.sh
+
+test-remote: run
+	@echo "Running tests..."
+	@echo "Running test script..."
+	@./bin/test-remote.sh
 
 clean:
 	@echo "Cleaning up..."
