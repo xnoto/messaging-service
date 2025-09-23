@@ -54,9 +54,27 @@
             cidr_ip: 0.0.0.0/0
       register: sg
 
-    - name: Lookup latest Amazon Linux AMI
+    - name: Lookup Fedora Cloud Base AMIs (x86_64, HVM, EBS) from Fedora Project
+      amazon.aws.ec2_ami_info:
+        region: "{{ aws_region }}"
+        owners:
+          - "125523088429"  # Fedora Project
+        filters:
+          name: "Fedora-Cloud-Base-*-x86_64-*-HVM-*"
+          architecture: "x86_64"
+          virtualization-type: "hvm"
+          root-device-type: "ebs"
+          state: "available"
+      register: fedora_ami_info
+
+    - name: Fail if no Fedora AMI found
+      ansible.builtin.fail:
+        msg: "No Fedora Cloud Base AMI found in {{ aws_region }}. Try a different region or adjust filters."
+      when: fedora_ami_info.images | length == 0
+
+    - name: Pick most recent Fedora AMI by creation date
       ansible.builtin.set_fact:
-        al2023_ami: "{{ lookup('amazon.aws.aws_ssm', '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64', region=aws_region) }}"
+        fedora_ami: "{{ (fedora_ami_info.images | sort(attribute='creation_date')) | last }}"
 
     - name: Check for existing instance by Name tag
       amazon.aws.ec2_instance_info:
@@ -75,7 +93,7 @@
         name: "{{ instance_name }}"
         region: "{{ aws_region }}"
         instance_type: "{{ instance_type }}"
-        image_id: "{{ al2023_ami }}"
+        image_id: "{{ fedora_ami.image_id }}"
         security_group: "{{ sg.group_id | default(sg.results[0].group_id) }}"
         subnet_id: "{{ subnets.subnets[0].id }}"
         wait: true
