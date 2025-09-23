@@ -58,7 +58,7 @@
 
     - name: Lookup latest Amazon Linux AMI
       set_fact:
-        al2025_ami: "{{ lookup('amazon.aws.aws_ssm', '/aws/service/ami-amazon-linux-latest/al2025-ami-kernel-default-x86_64', region=aws_region) }}"
+        al2024_ami: "{{ lookup('amazon.aws.aws_ssm', '/aws/service/ami-amazon-linux-latest/al2024-ami-kernel-default-x86_64', region=aws_region) }}"
 
     - name: Check for existing instance by Name tag
       ec2_instance_info:
@@ -77,7 +77,7 @@
         name: "{{ instance_name }}"
         region: "{{ aws_region }}"
         instance_type: "{{ instance_type }}"
-        image_id: "{{ al2025_ami }}"
+        image_id: "{{ al2024_ami }}"
         security_group: "{{ sg.group_id | default(sg.results[0].group_id) }}"
         subnet_id: "{{ subnets.subnets[0].id }}"
         wait: true
