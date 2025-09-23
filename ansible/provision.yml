@@ -5,7 +5,7 @@
   gather_facts: false
   vars:
     instance_name: "{{ instance_name | default('compose-ec2') }}"
-    aws_region: "{{ aws_region | default(lookup('env', 'AWS_REGION') | default('us-east-1')) }}"
+    aws_region: "{{ aws_region | default(lookup('env', 'AWS_REGION') | default('us-west-2')) }}"
     sg_name: "{{ instance_name }}-sg"
     instance_type: t3.micro
   tasks:
