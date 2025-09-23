@@ -54,27 +54,35 @@
             cidr_ip: 0.0.0.0/0
       register: sg
 
-    - name: Lookup Fedora Cloud Base AMIs (x86_64, HVM, EBS) from Fedora Project
+    # Replace the Fedora lookup with a RHEL 10 Marketplace lookup
+    - name: Lookup latest RHEL 10 HVM SSD AMI (x86_64) from Red Hat / AWS Marketplace
       amazon.aws.ec2_ami_info:
         region: "{{ aws_region }}"
         owners:
-          - "125523088429"  # Fedora Project
+          - "309956199498"    # Red Hat, Inc.
+          - "aws-marketplace" # Include Marketplace-owned images (requires subscription)
         filters:
-          name: "Fedora-Cloud-Base-*-x86_64-*"
+          name: "RHEL-10*HVM*x86_64*"
           architecture: "x86_64"
           virtualization-type: "hvm"
           root-device-type: "ebs"
+          block-device-mapping.volume-type:
+            - "gp3"
+            - "gp2"
           state: "available"
-      register: fedora_ami_info
+      register: rhel_ami_info
 
-    - name: Fail if no Fedora AMI found
+    - name: Fail if no RHEL 10 AMI found
       ansible.builtin.fail:
-        msg: "No Fedora Cloud Base AMI found in {{ aws_region }}. Try a different region or adjust filters."
-      when: fedora_ami_info.images | length == 0
+        msg: >-
+          No RHEL 10 (HVM, SSD) AMI found in {{ aws_region }}.
+          If you are not subscribed, go to AWS Marketplace and subscribe to
+          "Red Hat Enterprise Linux 10 (HVM), SSD Volume Type", then retry.
+      when: rhel_ami_info.images | length == 0
 
-    - name: Pick most recent Fedora AMI by creation date
+    - name: Pick most recent RHEL 10 AMI by creation date
       ansible.builtin.set_fact:
-        fedora_ami: "{{ (fedora_ami_info.images | sort(attribute='creation_date')) | last }}"
+        rhel_ami: "{{ (rhel_ami_info.images | sort(attribute='creation_date')) | last }}"
 
     - name: Check for existing instance by Name tag
       amazon.aws.ec2_instance_info:
@@ -93,7 +101,7 @@
         name: "{{ instance_name }}"
         region: "{{ aws_region }}"
         instance_type: "{{ instance_type }}"
-        image_id: "{{ fedora_ami.image_id }}"
+        image_id: "{{ rhel_ami.image_id }}"
         security_group: "{{ sg.group_id | default(sg.results[0].group_id) }}"
         subnet_id: "{{ subnets.subnets[0].id }}"
         wait: true
