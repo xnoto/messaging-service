@@ -3,8 +3,6 @@
   hosts: localhost
   connection: local
   gather_facts: false
-  collections:
-    - amazon.aws
   vars:
     instance_name: "{{ instance_name | default('compose-ec2') }}"
     aws_region: "{{ aws_region | default(lookup('env', 'AWS_REGION') | default('us-east-1')) }}"
@@ -12,7 +10,7 @@
     instance_type: t3.micro
   tasks:
     - name: Find default VPC
-      ec2_vpc_net_info:
+      amazon.aws.ec2_vpc_net_info:
         filters:
           isDefault: true
         region: "{{ aws_region }}"
@@ -24,7 +22,7 @@
       when: vpcs.vpcs | length == 0
 
     - name: Pick a public subnet in default VPC
-      ec2_vpc_subnet_info:
+      amazon.aws.ec2_vpc_subnet_info:
         region: "{{ aws_region }}"
         filters:
           vpc-id: "{{ vpcs.vpcs[0].vpc_id }}"
@@ -37,7 +35,7 @@
       when: subnets.subnets | length == 0
 
     - name: Ensure security group for HTTP/HTTPS/SSH
-      ec2_group:
+      amazon.aws.ec2_security_group:
         name: "{{ sg_name }}"
         description: "Security group for {{ instance_name }}"
         vpc_id: "{{ vpcs.vpcs[0].vpc_id }}"
@@ -57,11 +55,11 @@
       register: sg
 
     - name: Lookup latest Amazon Linux AMI
-      set_fact:
+      ansible.builtin.set_fact:
         al2023_ami: "{{ lookup('amazon.aws.aws_ssm', '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64', region=aws_region) }}"
 
     - name: Check for existing instance by Name tag
-      ec2_instance_info:
+      amazon.aws.ec2_instance_info:
         region: "{{ aws_region }}"
         filters:
           "tag:Name": "{{ instance_name }}"
@@ -73,7 +71,7 @@
       register: existing
 
     - name: Ensure instance exists and is running
-      ec2_instance:
+      amazon.aws.ec2_instance:
         name: "{{ instance_name }}"
         region: "{{ aws_region }}"
         instance_type: "{{ instance_type }}"
@@ -89,7 +87,7 @@
       when: existing.instances | length == 0
 
     - name: Start instance if it exists but is stopped
-      ec2_instance:
+      amazon.aws.ec2_instance:
         region: "{{ aws_region }}"
         state: running
         instance_ids: "{{ existing.instances | map(attribute='instance_id') | list }}"
@@ -97,7 +95,7 @@
       when: existing.instances | length > 0 and (existing.instances[0].state.name != 'running')
 
     - name: Refresh instance facts
-      ec2_instance_info:
+      amazon.aws.ec2_instance_info:
         region: "{{ aws_region }}"
         filters:
           "tag:Name": "{{ instance_name }}"

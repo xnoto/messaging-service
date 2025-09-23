@@ -12,7 +12,7 @@
       changed_when: false
 
     - name: Add current ephemeral public key for future SSH reconnects
-      ansible.builtin.authorized_key:
+      ansible.posix.authorized_key:
         user: ec2-user
         state: present
         key: "{{ lookup('file', pubkey_path) }}"
@@ -31,6 +31,7 @@
         mkdir -p /usr/local/lib/docker/cli-plugins/
         curl -SL https://github.com/docker/compose/releases/latest/download/docker-compose-linux-$(uname -m) -o /usr/local/lib/docker/cli-plugins/docker-compose
         chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
+      changed_when: false
 
     - name: Remove python3-requests
       ansible.builtin.package:
