@@ -48,12 +48,8 @@
             to_port: 22
             cidr_ip: 0.0.0.0/0
           - proto: tcp
-            from_port: 80
-            to_port: 80
-            cidr_ip: 0.0.0.0/0
-          - proto: tcp
-            from_port: 443
-            to_port: 443
+            from_port: 8080
+            to_port: 8080
             cidr_ip: 0.0.0.0/0
         rules_egress:
           - proto: -1
